@@ -40,6 +40,31 @@ struct RPR_TOOL_NODE_MATERIAL_IMPORTED
 	std::vector<  std::pair< std::string , std::pair<std::string,rpr_material_node_input> > > connecNode_; // list of connection to this node
 };
 
+struct RPR_DISPLACEMENT_IMPORTED
+{
+	RPR_DISPLACEMENT_IMPORTED()
+	{
+		displacementMin = 0.0f;
+		displacementMax = 0.0f;
+		displacementEnableAdaptiveSubdiv = false;
+		displacementASubdivFactor = 0.0f;
+		displacementSubdiv = 4;
+		displacementCreaseWeight = 0.0f;
+		displacementBoundary = RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_ONLY;
+	}
+
+	float displacementMin;
+	float displacementMax;
+	bool displacementEnableAdaptiveSubdiv;
+	float displacementASubdivFactor;
+	int displacementSubdiv;
+	float displacementCreaseWeight;
+	rpr_subdiv_boundary_interfop_type displacementBoundary;
+	std::string displacementMapPath;
+};
+
+
+
 // EXPORT a material and all its children materials tree into an XML file.
 // 
 // [input] masterMaterial : material to export
@@ -57,7 +82,8 @@ rpr_int rprtools_MaterialXMLExport(
 	rpr_material_node masterMaterial, 
 	rpr_material_node masterMaterial_displacement, 
 	const char* xmlFilePath,
-	const char* materialName
+	const char* materialName,
+	RPR_DISPLACEMENT_IMPORTED* displacementInfo = nullptr
 );
 
 //IMPORT and CREATE a material ( and all its children materials tree ) from an XML file.
@@ -82,6 +108,7 @@ rpr_int rprtools_MaterialXMLImport(
 	int& masterMaterialIndex, // 
 	std::vector<RPR_TOOL_NODE_MATERIAL_IMPORTED>& matNodeList,
 	int& masterMaterialIndex_displacement, 
-	std::vector<rpr_material_node>& extraArithmeticNodes
+	std::vector<rpr_material_node>& extraArithmeticNodes,
+	RPR_DISPLACEMENT_IMPORTED** displacementInfo = nullptr
 	);
 

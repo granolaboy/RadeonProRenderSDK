@@ -79,7 +79,8 @@ rpr_int rprtools_MaterialXMLImport(
 	int& masterMaterialIndex,
 	std::vector<RPR_TOOL_NODE_MATERIAL_IMPORTED>& matNodeList, 
 	int& masterMaterialIndex_displacement,
-	std::vector<rpr_material_node>& extraArithmeticNodes
+	std::vector<rpr_material_node>& extraArithmeticNodes,
+	RPR_DISPLACEMENT_IMPORTED** displacementInfo
 	)
 {
 	try
@@ -100,7 +101,17 @@ rpr_int rprtools_MaterialXMLImport(
 		doc.LoadFile( xmlFilePath ); 
 		tinyxml2::XMLNode* rootnode = doc.FirstChild();
 		tinyxml2::XMLNode* SiblingNode = rootnode->NextSibling();
-		tinyxml2::XMLElement* material_element = SiblingNode->ToElement();
+		if (!SiblingNode)
+			SiblingNode = rootnode;
+
+		char base_dir[1024];
+		// fullpath, drive, dir, filename, ext
+		_splitpath(xmlFilePath, NULL, base_dir, NULL, NULL);
+
+		tinyxml2::XMLElement* material_element = SiblingNode->ToElement();;
+
+		if (material_element == nullptr)
+			throw (rpr_int)RPR_ERROR_INTERNAL_ERROR;
 
 		std::string material_element_name = material_element->Name();
 		if ( material_element_name != "material" )
@@ -138,6 +149,82 @@ rpr_int rprtools_MaterialXMLImport(
 			tinyxml2::XMLElement* node2_element = node2->ToElement();
 			std::string node2_element_name = node2_element->Name();
 			
+			// GRANOLA - ADDED DISPLACEMENT INFO
+			if (node2_element_name == "displacement")
+			{
+				if (displacementInfo) {
+
+					*displacementInfo = new RPR_DISPLACEMENT_IMPORTED();
+					RPR_DISPLACEMENT_IMPORTED* dispParams = *displacementInfo;
+
+					tinyxml2::XMLNode* paramFirstChild = node2->FirstChild();
+					for (unsigned int iNodeParam = 0; ; iNodeParam++)
+					{
+						if (paramFirstChild == nullptr)
+							break;
+
+						tinyxml2::XMLElement* paramFirstChild_element = paramFirstChild->ToElement();
+						if (paramFirstChild_element == nullptr)
+						{
+							// if we reach this case, we are probably inside an XML comment
+						}
+						else
+						{
+							std::string paramFirstChild_element_name = paramFirstChild_element->Name();
+
+							if (paramFirstChild_element_name != "param")
+								throw (rpr_int)RPR_ERROR_INTERNAL_ERROR;
+
+							std::string  name = paramFirstChild_element->Attribute("name");
+							std::string  type = paramFirstChild_element->Attribute("type");
+							std::string  value = paramFirstChild_element->Attribute("value");
+
+							if (name == "displacementMin") {
+								dispParams->displacementMin = std::stof(value);
+							}
+							else if (name == "displacementMax")
+							{
+								dispParams->displacementMax = std::stof(value);
+							}
+							else if (name == "displacementEnableAdaptiveSubdiv")
+							{
+								dispParams->displacementEnableAdaptiveSubdiv = std::stoi(value) != 0;
+							}
+							else if (name == "displacementASubdivFactor")
+							{
+								dispParams->displacementASubdivFactor = std::stof(value);
+							}
+							else if (name == "displacementSubdiv")
+							{
+								dispParams->displacementSubdiv = std::stoi(value);
+							}
+							else if (name == "displacementCreaseWeight")
+							{
+								dispParams->displacementCreaseWeight = std::stof(value);
+							}
+							else if (name == "displacementBoundary")
+							{
+								dispParams->displacementBoundary = static_cast<rpr_subdiv_boundary_interfop_type>(std::stoi(value));
+							}
+							else if (name == "displacementMap")
+							{
+								dispParams->displacementMapPath = base_dir + value;
+							}
+						}
+
+						paramFirstChild = paramFirstChild->NextSibling();
+						if (paramFirstChild == nullptr)
+							break;
+					}
+				}
+
+				// next
+				node2 = node2->NextSibling();
+				if (node2 == nullptr)
+					break;
+				continue;
+			}
+
 			if ( node2_element_name != "node" )
 				throw (rpr_int)RPR_ERROR_INTERNAL_ERROR;
 
@@ -198,6 +285,9 @@ rpr_int rprtools_MaterialXMLImport(
 
 			for(unsigned int iNodeParam=0; ;iNodeParam++)
 			{
+				if (paramFirstChild == nullptr)
+					break;
+
 				tinyxml2::XMLElement* paramFirstChild_element = paramFirstChild->ToElement();
 				if ( paramFirstChild_element == nullptr )
 				{
@@ -426,6 +516,7 @@ rpr_int rprtools_MaterialXMLImport(
 	}
 	catch(std::exception& e)
 	{
+		(void)e;
 		return RPR_ERROR_INTERNAL_ERROR;
 	}
 	catch(rpr_int e)
@@ -748,7 +839,8 @@ rpr_int rprtools_MaterialXMLExport(
 	rpr_material_node masterMaterial, 
 	rpr_material_node masterMaterial_displacement,  
 	const char* xmlFilePath, 
-	const char* materialName)
+	const char* materialName,
+	RPR_DISPLACEMENT_IMPORTED* displacementInfo)
 {
 	try
 	{
@@ -821,6 +913,7 @@ rpr_int rprtools_MaterialXMLExport(
 	}
 	catch(std::exception& e)
 	{
+		(void)e;
 		return RPR_ERROR_INTERNAL_ERROR;
 	}
 	catch(rpr_int e)
