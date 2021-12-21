@@ -45,12 +45,12 @@ struct RPR_DISPLACEMENT_IMPORTED
 	RPR_DISPLACEMENT_IMPORTED()
 	{
 		displacementMin = 0.0f;
-		displacementMax = 0.0f;
-		displacementEnableAdaptiveSubdiv = false;
-		displacementASubdivFactor = 0.0f;
-		displacementSubdiv = 4;
-		displacementCreaseWeight = 0.0f;
-		displacementBoundary = RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_ONLY;
+		displacementMax = 0.1f;
+		displacementEnableAdaptiveSubdiv = true;
+		displacementASubdivFactor = 1.0f;
+		displacementSubdiv = 8;
+		displacementCreaseWeight = 1.0f;
+		displacementBoundary = RPR_SUBDIV_BOUNDARY_INTERFOP_TYPE_EDGE_AND_CORNER;
 	}
 
 	float displacementMin;
@@ -60,7 +60,6 @@ struct RPR_DISPLACEMENT_IMPORTED
 	int displacementSubdiv;
 	float displacementCreaseWeight;
 	rpr_subdiv_boundary_interfop_type displacementBoundary;
-	std::string displacementMapPath;
 };
 
 

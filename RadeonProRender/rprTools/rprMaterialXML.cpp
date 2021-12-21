@@ -206,10 +206,6 @@ rpr_int rprtools_MaterialXMLImport(
 							{
 								dispParams->displacementBoundary = static_cast<rpr_subdiv_boundary_interfop_type>(std::stoi(value));
 							}
-							else if (name == "displacementMap")
-							{
-								dispParams->displacementMapPath = base_dir + value;
-							}
 						}
 
 						paramFirstChild = paramFirstChild->NextSibling();
@@ -314,7 +310,18 @@ rpr_int rprtools_MaterialXMLImport(
 						if ( name == "path" && type == "file_path" )
 						{
 							std::string fullPathName = std::string(imageBaseFolderPath) + value;
-							status = rprContextCreateImageFromFile(context,fullPathName.c_str(),&newNode.image); MACRO_CHECK_RPR_STATUS;
+							status = rprContextCreateImageFromFile(context,fullPathName.c_str(),&newNode.image);
+
+							// Granola - add concession for RPR material library paths not being correct (wtf?)
+							//
+							if (status != RPR_SUCCESS)
+							{
+								// The maps folder is actually 1 more up
+								fullPathName = std::string(imageBaseFolderPath) + "../" + value;
+								status = rprContextCreateImageFromFile(context, fullPathName.c_str(), &newNode.image);
+							}
+
+							MACRO_CHECK_RPR_STATUS;
 							status = rprObjectSetName(newNode.image, value.c_str());  MACRO_CHECK_RPR_STATUS;
 							newNode.imagePath = value;
 						}
@@ -364,6 +371,13 @@ rpr_int rprtools_MaterialXMLImport(
 							RadeonProRender::float4 f4 = rprx4FloatFromXMLString(value,success);
 							if ( !success )
 								throw (rpr_int)RPR_ERROR_INTERNAL_ERROR;
+
+							// GRANOLA - bump map scale seems REALLY low
+							if (nodeElement_type == "BUMP_MAP" && name == "bumpscale")
+							{
+								f4 *= 10.0f;
+							}
+
 							status = rprMaterialNodeSetInputFByKey(newNode.matNode, strIdMapper.RPRMaterialInput_string_to_id(name),f4.x , f4.y , f4.z, f4.w);  
 							MACRO_CHECK_RPR_STATUS;
 						}
@@ -453,6 +467,13 @@ rpr_int rprtools_MaterialXMLImport(
 			if ( displacementNodeUsed == matNodeList[iNode_].nodeName )
 			{
 				masterMaterialIndex_displacement = iNode_;
+
+				// GRANOLA - add in some default displacement params
+				if (displacementInfo && *displacementInfo == nullptr)
+				{
+					*displacementInfo = new RPR_DISPLACEMENT_IMPORTED();
+					RPR_DISPLACEMENT_IMPORTED* dispParams = *displacementInfo;
+				}
 			}
 
 			//also apply image parameters
